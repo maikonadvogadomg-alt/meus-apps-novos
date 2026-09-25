@@ -1,0 +1,1922 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Playground + Chat IA</title>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <style>
+    :root {
+      --bg: #0b1120;
+      --panel: #111827;
+      --panel-2: #172033;
+      --editor: #020617;
+      --text: #e5e7eb;
+      --muted: #94a3b8;
+      --border: #334155;
+      --primary: #2563eb;
+      --primary-hover: #1d4ed8;
+      --success: #059669;
+      --danger: #dc2626;
+    }
+
+    :root.light {
+      --bg: #f1f5f9;
+      --panel: #ffffff;
+      --panel-2: #e2e8f0;
+      --editor: #f8fafc;
+      --text: #0f172a;
+      --muted: #64748b;
+      --border: #cbd5e1;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      overflow: hidden;
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+    }
+
+    button,
+    input,
+    textarea,
+    select {
+      font: inherit;
+      color: inherit;
+    }
+
+    button {
+      border: 0;
+      cursor: pointer;
+      border-radius: 5px;
+      padding: 6px 10px;
+      background: transparent;
+      color: var(--text);
+      transition: all 0.2s;
+      font-size: 12px;
+      min-height: 30px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    button:hover {
+      background: var(--panel-2);
+    }
+
+    button.primary {
+      background: var(--primary);
+      color: white;
+    }
+
+    button.primary:hover {
+      background: var(--primary-hover);
+    }
+
+    button.success {
+      background: var(--success);
+      color: white;
+    }
+
+    button.danger {
+      background: var(--danger);
+      color: white;
+    }
+
+    /* ===== LOGIN ===== */
+    .login-screen {
+      position: fixed;
+      inset: 0;
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--bg);
+    }
+
+    .login-screen.hidden {
+      display: none;
+    }
+
+    .login-box {
+      width: min(400px, 90%);
+      padding: 32px;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      background: var(--panel);
+    }
+
+    .login-box h1 {
+      margin: 0 0 24px;
+      font-size: 24px;
+      text-align: center;
+    }
+
+    .login-box .form-row {
+      margin-bottom: 16px;
+    }
+
+    .login-box label {
+      display: block;
+      margin-bottom: 6px;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--muted);
+    }
+
+    .login-box input {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      background: var(--editor);
+      outline: none;
+      color: var(--text);
+      font-size: 14px;
+    }
+
+    .login-box input:focus {
+      border-color: var(--primary);
+    }
+
+    .login-buttons {
+      display: flex;
+      gap: 8px;
+      margin-top: 20px;
+    }
+
+    .login-buttons button {
+      flex: 1;
+      padding: 10px;
+      font-size: 14px;
+      font-weight: 600;
+    }
+
+    .login-status {
+      margin-top: 12px;
+      padding: 10px;
+      border-radius: 6px;
+      font-size: 12px;
+      text-align: center;
+      display: none;
+    }
+
+    .login-status.show {
+      display: block;
+    }
+
+    .login-status.error {
+      color: #fecaca;
+      background: #7f1d1d;
+    }
+
+    .login-status.success {
+      color: #a7f3d0;
+      background: #064e3b;
+    }
+
+    /* ===== APP ===== */
+    .app {
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      width: 100vw;
+    }
+
+    .topbar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 12px;
+      min-height: 48px;
+      border-bottom: 1px solid var(--border);
+      background: var(--panel);
+      flex-wrap: wrap;
+      overflow-x: auto;
+      flex-shrink: 0;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      white-space: nowrap;
+    }
+
+    .brand-icon {
+      font-size: 18px;
+      color: #60a5fa;
+    }
+
+    .brand-name {
+      font-weight: 700;
+      font-size: 13px;
+    }
+
+    .project-title {
+      width: 140px;
+      padding: 6px 8px;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      background: var(--editor);
+      outline: none;
+      color: var(--text);
+      font-size: 12px;
+    }
+
+    .project-title:focus {
+      border-color: var(--primary);
+    }
+
+    .toolbar {
+      display: flex;
+      gap: 4px;
+      align-items: center;
+      flex-wrap: wrap;
+      flex: 1;
+    }
+
+    .btn-group {
+      display: flex;
+      gap: 4px;
+      align-items: center;
+    }
+
+    .user-info {
+      margin-left: auto;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .status {
+      display: none;
+      padding: 8px 12px;
+      border-bottom: 1px solid var(--border);
+      font-size: 12px;
+      white-space: pre-wrap;
+      max-height: 60px;
+      overflow-y: auto;
+      flex-shrink: 0;
+    }
+
+    .status.show {
+      display: block;
+    }
+
+    .status.success {
+      color: #a7f3d0;
+      background: #064e3b;
+    }
+
+    .status.error {
+      color: #fecaca;
+      background: #7f1d1d;
+    }
+
+    .status.info {
+      color: #bfdbfe;
+      background: #1e3a8a;
+    }
+
+    .main {
+      display: flex;
+      flex: 1;
+      min-height: 0;
+      overflow: hidden;
+    }
+
+    .sidebar {
+      display: flex;
+      flex-direction: column;
+      width: 260px;
+      min-width: 220px;
+      padding: 10px;
+      border-right: 1px solid var(--border);
+      background: var(--panel);
+      overflow: hidden;
+      flex-shrink: 0;
+    }
+
+    .sidebar-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .search {
+      width: 100%;
+      padding: 6px 8px;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      background: var(--editor);
+      outline: none;
+      color: var(--text);
+      margin-bottom: 8px;
+      font-size: 12px;
+    }
+
+    .project-list {
+      flex: 1;
+      overflow-y: auto;
+    }
+
+    .project-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 6px;
+      margin-bottom: 6px;
+      padding: 8px;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      background: var(--panel-2);
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .project-item:hover {
+      border-color: var(--primary);
+      background: var(--editor);
+    }
+
+    .project-info {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .project-name {
+      font-size: 11px;
+      font-weight: 600;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .project-meta {
+      font-size: 10px;
+      color: var(--muted);
+      margin-top: 2px;
+    }
+
+    .project-actions {
+      display: flex;
+      gap: 3px;
+    }
+
+    .small-btn {
+      width: 24px;
+      height: 24px;
+      padding: 0;
+      font-size: 11px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 3px;
+    }
+
+    .workarea {
+      display: flex;
+      flex: 1;
+      min-width: 0;
+      min-height: 0;
+      gap: 0;
+    }
+
+    .editor-section {
+      display: flex;
+      flex-direction: column;
+      width: 50%;
+      border-right: 1px solid var(--border);
+      min-width: 0;
+      min-height: 0;
+    }
+
+    .editor-section.collapsed {
+      display: none;
+    }
+
+    .preview-section {
+      display: flex;
+      flex-direction: column;
+      width: 50%;
+      border-right: 1px solid var(--border);
+      min-width: 0;
+      min-height: 0;
+    }
+
+    .chat-section {
+      display: flex;
+      flex-direction: column;
+      width: 50%;
+      min-width: 0;
+      min-height: 0;
+    }
+
+    .panel-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      min-height: 36px;
+      padding: 6px 9px;
+      border-bottom: 1px solid var(--border);
+      background: var(--panel);
+      font-size: 12px;
+      flex-shrink: 0;
+    }
+
+    .editor-tabs {
+      display: flex;
+      gap: 4px;
+      padding: 6px;
+      border-bottom: 1px solid var(--border);
+      background: var(--panel);
+      overflow-x: auto;
+      flex-shrink: 0;
+    }
+
+    .tab-btn {
+      padding: 5px 8px;
+      font-size: 11px;
+      white-space: nowrap;
+      border: 1px solid transparent;
+    }
+
+    .tab-btn.active {
+      background: var(--primary);
+      color: white;
+      border-color: var(--primary);
+    }
+
+    .editor-wrap {
+      display: flex;
+      flex: 1;
+      min-height: 0;
+      overflow: hidden;
+      background: var(--editor);
+    }
+
+    .line-numbers {
+      width: 40px;
+      padding: 8px 6px;
+      border-right: 1px solid var(--border);
+      color: var(--muted);
+      font-family: 'Courier New', monospace;
+      font-size: 12px;
+      line-height: 1.6;
+      text-align: right;
+      user-select: none;
+      overflow: hidden;
+      background: var(--panel-2);
+      flex-shrink: 0;
+    }
+
+    .code-editor {
+      flex: 1;
+      width: 100%;
+      padding: 8px 10px;
+      border: 0;
+      outline: none;
+      resize: none;
+      color: var(--text);
+      background: var(--editor);
+      font-family: 'Courier New', monospace;
+      font-size: 12px;
+      line-height: 1.6;
+      tab-size: 2;
+      overflow: auto;
+    }
+
+    .preview-frame {
+      flex: 1;
+      width: 100%;
+      border: 0;
+      background: white;
+    }
+
+    .chat-container {
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      min-height: 0;
+    }
+
+    .chat-messages {
+      flex: 1;
+      overflow-y: auto;
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .message {
+      padding: 10px;
+      border-radius: 6px;
+      font-size: 12px;
+      line-height: 1.5;
+      word-wrap: break-word;
+    }
+
+    .message.user {
+      background: var(--primary);
+      color: white;
+      align-self: flex-end;
+      max-width: 80%;
+    }
+
+    .message.assistant {
+      background: var(--panel-2);
+      color: var(--text);
+      align-self: flex-start;
+      max-width: 80%;
+    }
+
+    .chat-input-area {
+      display: flex;
+      gap: 6px;
+      padding: 10px;
+      border-top: 1px solid var(--border);
+      background: var(--panel);
+      flex-shrink: 0;
+    }
+
+    .chat-input {
+      flex: 1;
+      padding: 8px;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      background: var(--editor);
+      outline: none;
+      color: var(--text);
+      font-size: 12px;
+      resize: none;
+      max-height: 100px;
+    }
+
+    .chat-input:focus {
+      border-color: var(--primary);
+    }
+
+    .empty {
+      padding: 20px;
+      color: var(--muted);
+      font-size: 12px;
+      text-align: center;
+    }
+
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      z-index: 20;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 15px;
+      background: rgb(0 0 0 / 70%);
+    }
+
+    .modal-backdrop.open {
+      display: flex;
+    }
+
+    .modal {
+      width: min(500px, 100%);
+      max-height: 85vh;
+      overflow-y: auto;
+      padding: 16px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: var(--panel);
+      box-shadow: 0 20px 60px rgb(0 0 0 / 35%);
+    }
+
+    .modal h2 {
+      margin: 0 0 12px;
+      font-size: 15px;
+    }
+
+    .modal h3 {
+      margin: 12px 0 8px;
+      font-size: 12px;
+      color: var(--muted);
+      font-weight: 700;
+    }
+
+    .form-row {
+      margin-bottom: 10px;
+    }
+
+    .form-row label {
+      display: block;
+      margin-bottom: 4px;
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--muted);
+    }
+
+    .form-row input {
+      width: 100%;
+      padding: 7px 8px;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      background: var(--editor);
+      outline: none;
+      color: var(--text);
+      font-size: 12px;
+    }
+
+    .form-row input:focus {
+      border-color: var(--primary);
+    }
+
+    .modal-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 6px;
+      margin-top: 12px;
+      flex-wrap: wrap;
+    }
+
+    .config-status {
+      margin-top: 10px;
+      padding: 8px;
+      border-radius: 4px;
+      background: var(--editor);
+      font-size: 11px;
+      color: var(--muted);
+      white-space: pre-wrap;
+      max-height: 120px;
+      overflow-y: auto;
+    }
+
+    .mobile-toggle {
+      display: none;
+    }
+
+    @media (max-width: 768px) {
+      .sidebar {
+        display: none;
+      }
+
+      .editor-section {
+        width: 100%;
+      }
+
+      .project-title {
+        width: 100px;
+      }
+
+      .topbar {
+        min-height: 56px;
+      }
+    }
+
+    @media (max-width: 600px) {
+
+      html,
+      body {
+        overflow: auto;
+      }
+
+      .app {
+        min-height: 100vh;
+        height: auto;
+      }
+
+      .topbar {
+        position: sticky;
+        top: 0;
+        z-index: 10;
+        flex-shrink: 0;
+      }
+
+      .main {
+        flex-direction: column;
+        min-height: calc(100vh - 120px);
+        height: auto;
+      }
+
+      .editor-section,
+      .preview-section,
+      .chat-section {
+        width: 100%;
+        height: 50vh;
+        min-height: 50vh;
+      }
+
+      .editor-section.mobile-hidden,
+      .preview-section.mobile-hidden,
+      .chat-section.mobile-hidden {
+        display: none;
+      }
+
+      .mobile-toggle {
+        display: inline-flex;
+      }
+
+      .workarea {
+        min-height: auto;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <!-- LOGIN -->
+  <div id="loginScreen" class="login-screen">
+    <div class="login-box">
+      <h1>⚖ Playground + IA</h1>
+
+      <div class="form-row">
+        <label for="loginEmail">Email</label>
+        <input id="loginEmail" type="email" placeholder="seu@email.com" />
+      </div>
+
+      <div class="form-row">
+        <label for="loginPassword">Senha</label>
+        <input id="loginPassword" type="password" placeholder="••••••••" />
+      </div>
+
+      <div class="login-buttons">
+        <button id="loginBtn" class="primary">Entrar</button>
+        <button id="signupBtn">Cadastro</button>
+      </div>
+
+      <div id="loginStatus" class="login-status"></div>
+    </div>
+  </div>
+
+  <!-- APP -->
+  <div id="appScreen" class="app" style="display: none;">
+    <header class="topbar">
+      <div class="brand">
+        <span class="brand-icon">⚖</span>
+        <span class="brand-name">Playground + IA</span>
+      </div>
+
+      <input id="projectTitle" class="project-title" value="Sem título" placeholder="Nome do projeto" />
+
+      <div class="toolbar">
+        <div class="btn-group">
+          <button id="mobileEditorBtn" class="mobile-toggle">Código</button>
+          <button id="mobilePreviewBtn" class="mobile-toggle">Preview</button>
+          <button id="mobileChatBtn" class="mobile-toggle">Chat</button>
+        </div>
+
+        <div class="btn-group">
+          <button id="autoRunBtn" class="primary">◉ Ao vivo</button>
+          <button id="runBtn" class="primary">▶ Executar</button>
+        </div>
+
+        <div class="btn-group">
+          <button id="importBtn">↑ Importar</button>
+          <button id="downloadBtn">↓ Baixar</button>
+          <button id="copyBtn">⧉ Copiar</button>
+          <button id="fullscreenBtn">⛶</button>
+        </div>
+
+        <div class="btn-group">
+          <button id="saveLocalBtn" class="success">Salvar local</button>
+          <button id="saveCloudBtn" class="primary">Salvar Supabase</button>
+          <button id="openBtn">Abrir</button>
+        </div>
+
+        <div class="btn-group">
+          <button id="configBtn">⚙ Config</button>
+          <button id="themeBtn">☾</button>
+          <button id="resetBtn">↺</button>
+          <button id="clearBtn">⌫</button>
+          <button id="logoutBtn">🚪 Sair</button>
+        </div>
+      </div>
+
+      <div class="user-info">
+        <span id="userEmail">-</span>
+      </div>
+    </header>
+
+    <div id="status" class="status"></div>
+
+    <main class="main">
+      <aside class="sidebar">
+        <div class="sidebar-header">
+          <span>Projetos</span>
+          <button id="refreshBtn" class="small-btn">↻</button>
+        </div>
+
+        <input id="searchInput" class="search" placeholder="Pesquisar..." />
+
+        <div id="projectList" class="project-list"></div>
+      </aside>
+
+      <section class="workarea">
+        <!-- EDITOR -->
+        <section id="editorSection" class="editor-section">
+          <div class="editor-tabs">
+            <button class="tab-btn active" data-tab="html">HTML</button>
+            <button class="tab-btn" data-tab="css">CSS</button>
+            <button class="tab-btn" data-tab="js">JS</button>
+            <button id="collapseBtn" class="small-btn" style="margin-left: auto;">‹</button>
+          </div>
+
+          <div class="editor-wrap">
+            <div id="lineNumbers" class="line-numbers">1</div>
+            <textarea id="codeEditor" class="code-editor" spellcheck="false"></textarea>
+          </div>
+        </section>
+
+        <!-- PREVIEW -->
+        <section id="previewSection" class="preview-section">
+          <div class="panel-header">
+            <span>◉ Resultado</span>
+            <button id="expandEditorBtn" class="small-btn" style="display: none;">›</button>
+          </div>
+
+          <iframe id="previewFrame" class="preview-frame" sandbox="allow-scripts allow-modals allow-forms allow-popups"
+            title="Preview"></iframe>
+        </section>
+
+        <!-- CHAT IA -->
+        <section id="chatSection" class="chat-section">
+          <div class="panel-header">
+            <span>💬 Chat IA</span>
+          </div>
+
+          <div class="chat-container">
+            <div id="chatMessages" class="chat-messages"></div>
+
+            <div class="chat-input-area">
+              <textarea id="chatInput" class="chat-input" placeholder="Pergunte algo..." rows="1"></textarea>
+              <button id="sendBtn" class="primary" style="width: 50px; padding: 0;">Enviar</button>
+            </div>
+          </div>
+        </section>
+      </section>
+    </main>
+  </div>
+
+  <input id="fileInput" type="file" hidden accept=".html,.css,.js,.txt" />
+
+  <!-- MODAL CONFIGURAÇÃO -->
+  <div id="configModal" class="modal-backdrop">
+    <div class="modal">
+      <h2>⚙ Configuração</h2>
+
+      <h3>Supabase</h3>
+      <div class="form-row">
+        <label>Project URL</label>
+        <input id="supabaseUrl" placeholder="https://seu-projeto.supabase.co" />
+      </div>
+
+      <div class="form-row">
+        <label>Chave Pública (anon)</label>
+        <input id="supabaseKey" type="password" placeholder="eyJ..." />
+      </div>
+
+      <h3>API de IA</h3>
+      <div class="form-row">
+        <label>OpenAI API Key</label>
+        <input id="openaiKey" type="password" placeholder="sk-..." />
+      </div>
+
+      <h3>GitHub</h3>
+      <div class="form-row">
+        <label>GitHub Token</label>
+        <input id="githubToken" type="password" placeholder="ghp_..." />
+      </div>
+
+      <div style="display: flex; gap: 6px; margin-bottom: 12px;">
+        <button id="saveConfigBtn" class="primary">Salvar Configuração</button>
+        <button id="clearConfigBtn">Limpar Tudo</button>
+      </div>
+
+      <div id="configStatus" class="config-status">Nenhuma ação realizada.</div>
+
+      <div class="modal-actions">
+        <button id="closeConfigBtn">Fechar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL ABRIR -->
+  <div id="openModal" class="modal-backdrop">
+    <div class="modal">
+      <h2>Abrir projeto</h2>
+
+      <input id="openSearchInput" class="search" placeholder="Pesquisar..." />
+
+      <div id="openProjectList" class="project-list"></div>
+
+      <div class="modal-actions">
+        <button id="closeOpenBtn">Fechar</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    "use strict";
+
+    const STORAGE_KEY = "playground_state_v1";
+    const LOCAL_PROJECTS_KEY = "playground_local_projects_v1";
+
+    const DEFAULT_HTML = `<div class="card">
+  <h1>Olá!</h1>
+  <p>Edite o código e veja o resultado.</p>
+  <button id="btn">Clique</button>
+</div>`;
+
+    const DEFAULT_CSS = `body {
+  margin: 0;
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  font-family: Arial, sans-serif;
+  background: #eef2ff;
+}
+
+.card {
+  width: min(500px, 90%);
+  padding: 30px;
+  border-radius: 12px;
+  background: white;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+  text-align: center;
+}
+
+h1 { color: #2563eb; }
+
+button {
+  padding: 8px 16px;
+  border: 0;
+  border-radius: 6px;
+  background: #2563eb;
+  color: white;
+  cursor: pointer;
+}`;
+
+    const DEFAULT_JS = `document.getElementById("btn")?.addEventListener("click", () => {
+  alert("Funcionou!");
+});`;
+
+    let supabase = null;
+    let currentUser = null;
+    let currentChat = null;
+    let userConfig = null;
+
+    const state = {
+      tab: "html",
+      title: "Sem título",
+      html: DEFAULT_HTML,
+      css: DEFAULT_CSS,
+      js: DEFAULT_JS,
+      currentId: null,
+      autoRun: true,
+      editorCollapsed: false,
+      mobileView: "editor",
+      localProjects: [],
+      cloudProjects: []
+    };
+
+    const $ = (id) => document.getElementById(id);
+
+    // ===== LOGIN =====
+
+    async function initSupabase() {
+      const url = localStorage.getItem("supabase_url") || prompt("Project URL:");
+      const key = localStorage.getItem("supabase_key") || prompt("Chave anon:");
+
+      if (!url || !key) {
+        showLoginStatus("Configure Supabase.", "error");
+        return false;
+      }
+
+      localStorage.setItem("supabase_url", url);
+      localStorage.setItem("supabase_key", key);
+
+      supabase = window.supabase.createClient(url, key);
+      return true;
+    }
+
+    async function handleLogin() {
+      const email = $("loginEmail").value.trim();
+      const password = $("loginPassword").value.trim();
+
+      if (!email || !password) {
+        showLoginStatus("Preencha email e senha.", "error");
+        return;
+      }
+
+      if (!await initSupabase()) return;
+
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+
+      if (error) {
+        showLoginStatus("Erro: " + error.message, "error");
+        return;
+      }
+
+      currentUser = data.user;
+      showLoginStatus("Bem-vindo!", "success");
+      setTimeout(showApp, 1000);
+    }
+
+    async function handleSignup() {
+      const email = $("loginEmail").value.trim();
+      const password = $("loginPassword").value.trim();
+
+      if (!email || !password) {
+        showLoginStatus("Preencha email e senha.", "error");
+        return;
+      }
+
+      if (!await initSupabase()) return;
+
+      const { data, error } = await supabase.auth.signUp({ email, password });
+
+      if (error) {
+        showLoginStatus("Erro: " + error.message, "error");
+        return;
+      }
+
+      showLoginStatus("Cadastro realizado! Verifique seu email.", "success");
+    }
+
+    function showLoginStatus(message, type) {
+      const el = $("loginStatus");
+      el.className = "login-status show " + type;
+      el.textContent = message;
+    }
+
+    function showApp() {
+      $("loginScreen").classList.add("hidden");
+      $("appScreen").style.display = "flex";
+      $("userEmail").textContent = currentUser?.email || "Usuário";
+      loadUserConfig();
+      loadState();
+      updatePreview();
+      loadCloudProjects();
+      createNewChat();
+    }
+
+    async function handleLogout() {
+      if (!supabase) return;
+      await supabase.auth.signOut();
+      currentUser = null;
+      $("loginScreen").classList.remove("hidden");
+      $("appScreen").style.display = "none";
+      $("loginEmail").value = "";
+      $("loginPassword").value = "";
+    }
+
+    // ===== CONFIGURAÇÃO =====
+
+    async function loadUserConfig() {
+      if (!supabase || !currentUser) return;
+
+      const { data } = await supabase
+        .from("user_configs")
+        .select("*")
+        .eq("user_id", currentUser.id)
+        .single();
+
+      if (data) {
+        userConfig = data;
+        $("supabaseUrl").value = data.supabase_url || "";
+        $("supabaseKey").value = data.supabase_key || "";
+        $("openaiKey").value = data.openai_key || "";
+        $("githubToken").value = data.github_token || "";
+      }
+    }
+
+    async function saveUserConfig() {
+      if (!supabase || !currentUser) return;
+
+      const payload = {
+        user_id: currentUser.id,
+        supabase_url: $("supabaseUrl").value,
+        supabase_key: $("supabaseKey").value,
+        openai_key: $("openaiKey").value,
+        github_token: $("githubToken").value
+      };
+
+      let result;
+
+      if (userConfig?.id) {
+        result = await supabase
+          .from("user_configs")
+          .update(payload)
+          .eq("id", userConfig.id)
+          .select()
+          .single();
+      } else {
+        result = await supabase
+          .from("user_configs")
+          .insert(payload)
+          .select()
+          .single();
+      }
+
+      if (result.error) {
+        showConfigStatus("Erro: " + result.error.message, "error");
+        return;
+      }
+
+      userConfig = result.data;
+      showConfigStatus("Configuração salva com sucesso!", "success");
+      showStatus("success", "Chaves salvas!");
+    }
+
+    function showConfigStatus(message, type = "") {
+      const el = $("configStatus");
+      el.textContent = message;
+      if (type === "success") el.style.color = "#86efac";
+      else if (type === "error") el.style.color = "#fca5a5";
+      else el.style.color = "inherit";
+    }
+
+    // ===== CHAT IA =====
+
+    async function createNewChat() {
+      if (!supabase || !currentUser) return;
+
+      const { data, error } = await supabase
+        .from("chats")
+        .insert({
+          user_id: currentUser.id,
+          title: "Nova conversa"
+        })
+        .select()
+        .single();
+
+      if (error) {
+        console.error("Erro ao criar chat:", error);
+        return;
+      }
+
+      currentChat = data;
+      $("chatMessages").innerHTML = "";
+    }
+
+    async function sendMessage() {
+      const text = $("chatInput").value.trim();
+
+      if (!text) return;
+
+      if (!currentChat) {
+        showStatus("error", "Nenhum chat ativo.");
+        return;
+      }
+
+      if (!userConfig?.openai_key) {
+        showStatus("error", "Configure sua chave OpenAI.");
+        return;
+      }
+
+      // Adicionar mensagem do usuário
+      addMessageToChat("user", text);
+      $("chatInput").value = "";
+
+      // Chamar IA
+      try {
+        const response = await fetch("https://api.openai.com/v1/chat/completions", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${userConfig.openai_key}`
+          },
+          body: JSON.stringify({
+            model: "gpt-3.5-turbo",
+            messages: [{ role: "user", content: text }],
+            max_tokens: 500
+          })
+        });
+
+        if (!response.ok) {
+          throw new Error("Erro na API OpenAI");
+        }
+
+        const data = await response.json();
+        const aiMessage = data.choices[0].message.content;
+
+        addMessageToChat("assistant", aiMessage);
+
+        // Salvar no banco
+        await supabase.from("messages").insert({
+          chat_id: currentChat.id,
+          role: "user",
+          content: text
+        });
+
+        await supabase.from("messages").insert({
+          chat_id: currentChat.id,
+          role: "assistant",
+          content: aiMessage
+        });
+      } catch (error) {
+        showStatus("error", "Erro: " + error.message);
+        addMessageToChat("assistant", "Erro ao conectar com IA.");
+      }
+    }
+
+    function addMessageToChat(role, content) {
+      const container = $("chatMessages");
+      const msg = document.createElement("div");
+      msg.className = "message " + role;
+      msg.textContent = content;
+      container.appendChild(msg);
+      container.scrollTop = container.scrollHeight;
+    }
+
+    // ===== UTILITÁRIOS =====
+
+    function showStatus(type, message, timeout = 4000) {
+      const el = $("status");
+      el.className = "status show " + type;
+      el.textContent = message;
+
+      if (timeout) {
+        clearTimeout(showStatus.timer);
+        showStatus.timer = setTimeout(() => {
+          el.className = "status";
+        }, timeout);
+      }
+    }
+
+    function safeJsonParse(value, fallback) {
+      try {
+        return JSON.parse(value);
+      } catch {
+        return fallback;
+      }
+    }
+
+    // ===== PERSISTÊNCIA =====
+
+    function loadState() {
+      const saved = safeJsonParse(localStorage.getItem(STORAGE_KEY), null);
+      if (saved) {
+        Object.assign(state, saved);
+      }
+
+      state.localProjects = safeJsonParse(
+        localStorage.getItem(LOCAL_PROJECTS_KEY),
+        []
+      );
+
+      renderAll();
+    }
+
+    function persistState() {
+      const copy = {
+        tab: state.tab,
+        title: state.title,
+        html: state.html,
+        css: state.css,
+        js: state.js,
+        currentId: state.currentId,
+        autoRun: state.autoRun,
+        editorCollapsed: state.editorCollapsed,
+        mobileView: state.mobileView
+      };
+
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(copy));
+    }
+
+    // ===== EDITOR =====
+
+    function getCurrentCode() {
+      return state[state.tab] || "";
+    }
+
+    function setCurrentCode(value) {
+      state[state.tab] = value;
+      persistState();
+      updateEditor();
+      if (state.autoRun) {
+        schedulePreview();
+      }
+    }
+
+    function updateEditor() {
+      const value = getCurrentCode();
+      $("codeEditor").value = value;
+
+      const lines = Math.max(1, value.split("\n").length);
+      $("lineNumbers").textContent = Array.from(
+        { length: lines },
+        (_, i) => i + 1
+      ).join("\n");
+
+      $("projectTitle").value = state.title;
+    }
+
+    function setTab(tab) {
+      state.tab = tab;
+      persistState();
+      renderTabs();
+      updateEditor();
+    }
+
+    function renderTabs() {
+      document.querySelectorAll("[data-tab]").forEach((btn) => {
+        btn.classList.toggle("active", btn.dataset.tab === state.tab);
+      });
+    }
+
+    // ===== PREVIEW =====
+
+    function buildDocument() {
+      if (state.html.toLowerCase().includes("<!doctype")) {
+        return state.html;
+      }
+
+      return `<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>${state.css}</style>
+</head>
+<body>
+  ${state.html}
+  <script>
+try {
+${state.js}
+} catch (error) {
+  document.body.insertAdjacentHTML("beforeend",
+    "<pre style='color:red;padding:12px;white-space:pre-wrap'>" +
+    error.stack +
+    "</pre>"
+  );
+}
+  <\/script>
+</body>
+</html>`;
+    }
+
+    let previewTimer = null;
+
+    function schedulePreview() {
+      clearTimeout(previewTimer);
+      previewTimer = setTimeout(updatePreview, 300);
+    }
+
+    function updatePreview() {
+      persistState();
+
+      const blob = new Blob([buildDocument()], { type: "text/html;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const oldUrl = $("previewFrame").dataset.objectUrl;
+
+      $("previewFrame").src = url;
+      $("previewFrame").dataset.objectUrl = url;
+
+      if (oldUrl) {
+        setTimeout(() => URL.revokeObjectURL(oldUrl), 1000);
+      }
+    }
+
+    // ===== PROJETOS =====
+
+    function getProjectRecord() {
+      return {
+        id: state.currentId || crypto.randomUUID(),
+        title: state.title.trim() || "Sem título",
+        html: state.html,
+        css: state.css,
+        js: state.js,
+        saved_at: new Date().toISOString()
+      };
+    }
+
+    function saveLocal() {
+      const record = getProjectRecord();
+      const idx = state.localProjects.findIndex((p) => p.id === state.currentId);
+
+      if (idx >= 0) {
+        state.localProjects[idx] = record;
+      } else {
+        state.currentId = record.id;
+        state.localProjects.unshift(record);
+      }
+
+      localStorage.setItem(LOCAL_PROJECTS_KEY, JSON.stringify(state.localProjects));
+      persistState();
+      renderProjects();
+      showStatus("success", "Projeto salvo localmente!");
+    }
+
+    async function saveCloud() {
+      if (!supabase || !currentUser) {
+        showStatus("error", "Faça login primeiro.");
+        return;
+      }
+
+      const payload = {
+        user_id: currentUser.id,
+        title: state.title.trim() || "Sem título",
+        html: state.html,
+        css: state.css,
+        js: state.js
+      };
+
+      let result;
+
+      if (state.currentId && state.currentId.length > 20) {
+        result = await supabase
+          .from("snippets")
+          .update(payload)
+          .eq("id", state.currentId)
+          .select("id")
+          .single();
+      } else {
+        result = await supabase
+          .from("snippets")
+          .insert(payload)
+          .select("id")
+          .single();
+      }
+
+      if (result.error) {
+        showStatus("error", "Erro: " + result.error.message);
+        return;
+      }
+
+      state.currentId = result.data.id;
+      persistState();
+      await loadCloudProjects();
+      showStatus("success", "Projeto salvo no Supabase!");
+    }
+
+    async function loadCloudProjects() {
+      if (!supabase || !currentUser) return;
+
+      const { data, error } = await supabase
+        .from("snippets")
+        .select("id,title,html,css,js")
+        .eq("user_id", currentUser.id)
+        .order("created_at", { ascending: false });
+
+      if (error) {
+        console.error("Erro:", error);
+        return;
+      }
+
+      state.cloudProjects = (data || []).map((p) => ({
+        ...p,
+        source: "cloud"
+      }));
+
+      renderProjects();
+    }
+
+    function loadProject(project) {
+      state.currentId = project.id;
+      state.title = project.title || "Sem título";
+      state.html = project.html || "";
+      state.css = project.css || "";
+      state.js = project.js || "";
+      state.tab = "html";
+
+      persistState();
+      renderAll();
+      updatePreview();
+      closeOpenModal();
+      showStatus("success", "Projeto aberto!");
+    }
+
+    async function deleteProject(project) {
+      if (!confirm('Excluir "' + project.title + '"?')) return;
+
+      if (project.source === "cloud" && supabase) {
+        const { error } = await supabase
+          .from("snippets")
+          .delete()
+          .eq("id", project.id);
+
+        if (error) {
+          showStatus("error", "Erro: " + error.message);
+          return;
+        }
+
+        await loadCloudProjects();
+        showStatus("success", "Projeto excluído.");
+        return;
+      }
+
+      state.localProjects = state.localProjects.filter((p) => p.id !== project.id);
+      localStorage.setItem(LOCAL_PROJECTS_KEY, JSON.stringify(state.localProjects));
+      renderProjects();
+      showStatus("success", "Projeto local excluído.");
+    }
+
+    function renameProject(project) {
+      const title = prompt("Novo nome:", project.title);
+      if (!title || !title.trim()) return;
+
+      if (project.source === "cloud" && supabase) {
+        supabase
+          .from("snippets")
+          .update({ title: title.trim() })
+          .eq("id", project.id)
+          .then(() => loadCloudProjects());
+        return;
+      }
+
+      const local = state.localProjects.find((p) => p.id === project.id);
+      if (local) {
+        local.title = title.trim();
+        localStorage.setItem(LOCAL_PROJECTS_KEY, JSON.stringify(state.localProjects));
+        renderProjects();
+      }
+    }
+
+    // ===== RENDERIZAÇÃO =====
+
+    function mergedProjects() {
+      const cloud = state.cloudProjects.map((p) => ({ ...p, source: "cloud" }));
+      const local = state.localProjects.map((p) => ({ ...p, source: "local" }));
+      return [...cloud, ...local];
+    }
+
+    function renderProjects() {
+      const term = $("searchInput").value.trim().toLowerCase();
+      const projects = mergedProjects().filter((p) =>
+        String(p.title || "").toLowerCase().includes(term)
+      );
+
+      $("projectList").innerHTML = "";
+
+      if (!projects.length) {
+        $("projectList").innerHTML = '<div class="empty">Nenhum projeto.</div>';
+        return;
+      }
+
+      projects.forEach((p, idx) => {
+        $("projectList").appendChild(createProjectElement(p, idx + 1));
+      });
+
+      renderOpenProjects();
+    }
+
+    function createProjectElement(project, number) {
+      const item = document.createElement("div");
+      item.className = "project-item";
+
+      const info = document.createElement("div");
+      info.className = "project-info";
+
+      const name = document.createElement("div");
+      name.className = "project-name";
+      name.textContent = "#" + number + " — " + (project.title || "Sem título");
+
+      const meta = document.createElement("div");
+      meta.className = "project-meta";
+      meta.textContent = (project.source === "cloud" ? "☁ Supabase" : "💾 Local");
+
+      info.append(name, meta);
+      info.addEventListener("click", () => loadProject(project));
+
+      const actions = document.createElement("div");
+      actions.className = "project-actions";
+
+      const rename = document.createElement("button");
+      rename.className = "small-btn";
+      rename.textContent = "✎";
+      rename.addEventListener("click", (e) => {
+        e.stopPropagation();
+        renameProject(project);
+      });
+
+      const del = document.createElement("button");
+      del.className = "small-btn";
+      del.textContent = "×";
+      del.addEventListener("click", (e) => {
+        e.stopPropagation();
+        deleteProject(project);
+      });
+
+      actions.append(rename, del);
+      item.append(info, actions);
+
+      return item;
+    }
+
+    function renderOpenProjects() {
+      const term = $("openSearchInput").value.trim().toLowerCase();
+      const container = $("openProjectList");
+      container.innerHTML = "";
+
+      const projects = mergedProjects().filter((p) =>
+        String(p.title || "").toLowerCase().includes(term)
+      );
+
+      if (!projects.length) {
+        container.innerHTML = '<div class="empty">Nenhum projeto.</div>';
+        return;
+      }
+
+      projects.forEach((p, idx) => {
+        container.appendChild(createProjectElement(p, idx + 1));
+      });
+    }
+
+    function renderLayout() {
+      $("editorSection").classList.toggle("collapsed", state.editorCollapsed);
+      $("expandEditorBtn").style.display = state.editorCollapsed ? "inline-flex" : "none";
+      $("collapseBtn").style.display = state.editorCollapsed ? "none" : "inline-flex";
+
+      $("autoRunBtn").classList.toggle("primary", state.autoRun);
+      $("autoRunBtn").textContent = state.autoRun ? "◉ Ao vivo" : "○ Manual";
+
+      const isMobile = window.innerWidth <= 600;
+
+      if (isMobile) {
+        $("editorSection").classList.toggle("mobile-hidden", state.mobileView !== "editor");
+        $("previewSection").classList.toggle("mobile-hidden", state.mobileView !== "preview");
+        $("chatSection").classList.toggle("mobile-hidden", state.mobileView !== "chat");
+      } else {
+        $("editorSection").classList.remove("mobile-hidden");
+        $("previewSection").classList.remove("mobile-hidden");
+        $("chatSection").classList.remove("mobile-hidden");
+      }
+    }
+
+    function renderAll() {
+      renderTabs();
+      updateEditor();
+      renderLayout();
+      renderProjects();
+    }
+
+    // ===== MODAIS =====
+
+    function openOpenModal() {
+      $("openModal").classList.add("open");
+      renderOpenProjects();
+    }
+
+    function closeOpenModal() {
+      $("openModal").classList.remove("open");
+    }
+
+    // ===== DOWNLOAD/IMPORT =====
+
+    function downloadFile(filename, content, type) {
+      const blob = new Blob([content], { type });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+
+      link.href = url;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    }
+
+    function downloadCurrent() {
+      const filename = (state.title.trim() || "playground")
+        .replace(/[^\wÀ-ÿ -]/g, "")
+        .replace(/\s+/g, "-") + ".html";
+
+      downloadFile(filename, buildDocument(), "text/html;charset=utf-8");
+      showStatus("success", "Arquivo baixado.");
+    }
+
+    async function copyCurrent() {
+      try {
+        await navigator.clipboard.writeText(buildDocument());
+        showStatus("success", "Código copiado!");
+      } catch {
+        showStatus("error", "Não foi possível copiar.");
+      }
+    }
+
+    function openFullscreen() {
+      const blob = new Blob([buildDocument()], { type: "text/html;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      window.open(url, "_blank", "noopener,noreferrer");
+      setTimeout(() => URL.revokeObjectURL(url), 5000);
+    }
+
+    function importFile(file) {
+      const reader = new FileReader();
+
+      reader.onload = () => {
+        const content = String(reader.result || "");
+        const ext = file.name.split(".").pop().toLowerCase();
+
+        state.title = file.name.replace(/\.[^.]+$/, "") || "Importado";
+
+        if (ext === "css") {
+          state.tab = "css";
+          state.css = content;
+        } else if (ext === "js") {
+          state.tab = "js";
+          state.js = content;
+        } else {
+          state.tab = "html";
+          state.html = content;
+        }
+
+        state.currentId = null;
+        persistState();
+        renderAll();
+        updatePreview();
+        showStatus("success", "Arquivo importado.");
+      };
+
+      reader.readAsText(file);
+    }
+
+    function resetCurrent() {
+      state.html = DEFAULT_HTML;
+      state.css = DEFAULT_CSS;
+      state.js = DEFAULT_JS;
+      state.title = "Sem título";
+      state.currentId = null;
+      state.tab = "html";
+
+      persistState();
+      renderAll();
+      updatePreview();
+      showStatus("success", "Restaurado!");
+    }
+
+    function clearCurrent() {
+      state.html = "";
+      state.css = "";
+      state.js = "";
+
+      persistState();
+      renderAll();
+      updatePreview();
+      showStatus("info", "Editor limpo.");
+    }
+
+    // ===== TEMA =====
+
+    function toggleTheme() {
+      const isLight = document.documentElement.classList.toggle("light");
+      localStorage.setItem("playground_theme", isLight ? "light" : "dark");
+      $("themeBtn").textContent = isLight ? "☀" : "☾";
+    }
+
+    function applyTheme() {
+      const theme = localStorage.getItem("playground_theme") || "dark";
+      document.documentElement.classList.toggle("light", theme === "light");
+      $("themeBtn").textContent = theme === "light" ? "☀" : "☾";
+    }
+
+    // ===== EVENTOS =====
+
+    function bindEvents() {
+      // Login
+      $("loginBtn").addEventListener("click", handleLogin);
+      $("signupBtn").addEventListener("click", handleSignup);
+
+      // Abas
+      document.querySelectorAll("[data-tab]").forEach((btn) => {
+        btn.addEventListener("click", () => setTab(btn.dataset.tab));
+      });
+
+      // Título
+      $("projectTitle").addEventListener("input", (e) => {
+        state.title = e.target.value;
+        persistState();
+      });
+
+      // Editor
+      $("codeEditor").addEventListener("input", (e) => {
+        setCurrentCode(e.target.value);
+      });
+
+      // Botões principais
+      $("autoRunBtn").addEventListener("click", () => {
+        state.autoRun = !state.autoRun;
+        persistState();
+        renderLayout();
+        if (state.autoRun) updatePreview();
+      });
+
+      $("runBtn").addEventListener("click", updatePreview);
+      $("saveLocalBtn").addEventListener("click", saveLocal);
+      $("saveCloudBtn").addEventListener("click", saveCloud);
+      $("openBtn").addEventListener("click", openOpenModal);
+      $("closeOpenBtn").addEventListener("click", closeOpenModal);
+      $("copyBtn").addEventListener("click", copyCurrent);
+      $("downloadBtn").addEventListener("click", downloadCurrent);
+      $("fullscreenBtn").addEventListener("click", openFullscreen);
+      $("resetBtn").addEventListener("click", resetCurrent);
+      $("clearBtn").addEventListener("click", clearCurrent);
+      $("themeBtn").addEventListener("click", toggleTheme);
+      $("logoutBtn").addEventListener("click", handleLogout);
+
+      // Collapse
+      $("collapseBtn").addEventListener("click", () => {
+        state.editorCollapsed = true;
+        persistState();
+        renderLayout();
+      });
+
+      $("expandEditorBtn").addEventListener("click", () => {
+        state.editorCollapsed = false;
+        persistState();
+        renderLayout();
+      });
+
+      // Mobile
+      $("mobileEditorBtn").addEventListener("click", () => {
+        state.mobileView = "editor";
+        renderLayout();
+      });
+
+      $("mobilePreviewBtn").addEventListener("click", () => {
+        state.mobileView = "preview";
+        updatePreview();
+        renderLayout();
+      });
+
+      $("mobileChatBtn").addEventListener("click", () => {
+        state.mobileView = "chat";
+        renderLayout();
+      });
+
+      // Config
+      $("configBtn").addEventListener("click", () => {
+        $("configModal").classList.add("open");
+      });
+
+      $("closeConfigBtn").addEventListener("click", () => {
+        $("configModal").classList.remove("open");
+      });
+
+      $("saveConfigBtn").addEventListener("click", saveUserConfig);
+
+      $("clearConfigBtn").addEventListener("click", () => {
+        $("supabaseUrl").value = "";
+        $("supabaseKey").value = "";
+        $("openaiKey").value = "";
+        $("githubToken").value = "";
+        showConfigStatus("Campos limpos.");
+      });
+
+      // Chat
+      $("sendBtn").addEventListener("click", sendMessage);
+      $("chatInput").addEventListener("keypress", (e) => {
+        if (e.key === "Enter" && !e.shiftKey) {
+          e.preventDefault();
+          sendMessage();
+        }
+      });
+
+      // Pesquisa
+      $("searchInput").addEventListener("input", renderProjects);
+      $("openSearchInput").addEventListener("input", renderOpenProjects);
+
+      // Atualizar
+      $("refreshBtn").addEventListener("click", () => {
+        loadCloudProjects();
+        showStatus("info", "Atualizado!");
+      });
+
+      // Import
+      $("importBtn").addEventListener("click", () => $("fileInput").click());
+      $("fileInput").addEventListener("change", (e) => {
+        const file = e.target.files[0];
+        if (file) importFile(file);
+        e.target.value = "";
+      });
+
+      // Resize
+      window.addEventListener("resize", renderLayout);
+    }
+
+    // ===== INICIALIZAÇÃO =====
+
+    applyTheme();
+    bindEvents();
+  </script>
+</body>
+
+</html>
