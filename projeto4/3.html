@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Playground + Chat IA</title>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <style>
+    :root {
+      --bg: #0b1120;
+      --panel: #111827;
+      --text: #e5e7eb;
+      --border: #334155;
+      --primary: #2563eb;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: Arial, sans-serif;
+    }
+
+    .container {
+      display: flex;
+      height: 100vh;
+    }
+
+    .sidebar {
+      width: 200px;
+      background: var(--panel);
+      border-right: 1px solid var(--border);
+      padding: 20px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .sidebar h2 {
+      margin: 0 0 20px;
+      font-size: 16px;
+    }
+
+    .nav-btn {
+      padding: 12px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      background: transparent;
+      color: var(--text);
+      cursor: pointer;
+      font-size: 14px;
+      transition: all 0.2s;
+    }
+
+    .nav-btn:hover {
+      background: var(--primary);
+      color: white;
+    }
+
+    .nav-btn.active {
+      background: var(--primary);
+      color: white;
+    }
+
+    .content {
+      flex: 1;
+      overflow: hidden;
+    }
+
+    iframe {
+      width: 100%;
+      height: 100%;
+      border: 0;
+    }
+
+    .login-screen {
+      position: fixed;
+      inset: 0;
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--bg);
+    }
+
+    .login-screen.hidden {
+      display: none;
+    }
+
+    .login-box {
+      width: min(400px, 90%);
+      padding: 32px;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      background: var(--panel);
+    }
+
+    .login-box h1 {
+      margin: 0 0 24px;
+      font-size: 24px;
+      text-align: center;
+    }
+
+    .form-row {
+      margin-bottom: 16px;
+    }
+
+    .form-row label {
+      display: block;
+      margin-bottom: 6px;
+      font-size: 12px;
+      font-weight: 600;
+      color: #94a3b8;
+    }
+
+    .form-row input {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      background: #020617;
+      outline: none;
+      color: var(--text);
+      font-size: 14px;
+    }
+
+    .form-row input:focus {
+      border-color: var(--primary);
+    }
+
+    .login-buttons {
+      display: flex;
+      gap: 8px;
+      margin-top: 20px;
+    }
+
+    .login-buttons button {
+      flex: 1;
+      padding: 10px;
+      border: 0;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 600;
+    }
+
+    .login-buttons .primary {
+      background: var(--primary);
+      color: white;
+    }
+
+    .login-buttons .secondary {
+      background: transparent;
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+
+    .login-status {
+      margin-top: 12px;
+      padding: 10px;
+      border-radius: 6px;
+      font-size: 12px;
+      text-align: center;
+      display: none;
+    }
+
+    .login-status.show {
+      display: block;
+    }
+
+    .login-status.error {
+      color: #fecaca;
+      background: #7f1d1d;
+    }
+
+    .login-status.success {
+      color: #a7f3d0;
+      background: #064e3b;
+    }
+
+    .user-info {
+      margin-top: auto;
+      padding-top: 20px;
+      border-top: 1px solid var(--border);
+      font-size: 12px;
+      color: #94a3b8;
+    }
+
+    .user-info div {
+      margin-bottom: 8px;
+    }
+
+    .logout-btn {
+      width: 100%;
+      padding: 10px;
+      margin-top: 10px;
+      background: #dc2626;
+      color: white;
+      border: 0;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 12px;
+    }
+
+    @media (max-width: 768px) {
+      .sidebar {
+        width: 150px;
+      }
+
+      .nav-btn {
+        padding: 8px;
+        font-size: 12px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <!-- LOGIN -->
+  <div id="loginScreen" class="login-screen">
+    <div class="login-box">
+      <h1>⚖ Plataforma</h1>
+
+      <div class="form-row">
+        <label for="loginEmail">Email</label>
+        <input id="loginEmail" type="email" placeholder="seu@email.com" />
+      </div>
+
+      <div class="form-row">
+        <label for="loginPassword">Senha</label>
+        <input id="loginPassword" type="password" placeholder="••••••••" />
+      </div>
+
+      <div class="login-buttons">
+        <button id="loginBtn" class="primary">Entrar</button>
+        <button id="signupBtn" class="secondary">Cadastro</button>
+      </div>
+
+      <div id="loginStatus" class="login-status"></div>
+    </div>
+  </div>
+
+  <!-- APP -->
+  <div id="appScreen" style="display: none; height: 100vh;">
+    <div class="container">
+      <div class="sidebar">
+        <h2>Menu</h2>
+
+        <button id="playgroundBtn" class="nav-btn active">📝 Playground</button>
+        <button id="chatBtn" class="nav-btn">💬 Chat IA</button>
+        <button id="configBtn" class="nav-btn">⚙ Configuração</button>
+
+        <div class="user-info">
+          <div>Usuário:</div>
+          <div id="userEmail" style="font-weight: 600;">-</div>
+          <button id="logoutBtn" class="logout-btn">Sair</button>
+        </div>
+      </div>
+
+      <div class="content">
+        <iframe id="contentFrame" src="playground.html"></iframe>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let supabase = null;
+    let currentUser = null;
+
+    const $ = (id) => document.getElementById(id);
+
+    async function initSupabase() {
+      const url = localStorage.getItem("supabase_url") || prompt("Project URL:");
+      const key = localStorage.getItem("supabase_key") || prompt("Chave anon:");
+
+      if (!url || !key) {
+        showLoginStatus("Configure Supabase.", "error");
+        return false;
+      }
+
+      localStorage.setItem("supabase_url", url);
+      localStorage.setItem("supabase_key", key);
+
+      supabase = window.supabase.createClient(url, key);
+      return true;
+    }
+
+    async function handleLogin() {
+      const email = $("loginEmail").value.trim();
+      const password = $("loginPassword").value.trim();
+
+      if (!email || !password) {
+        showLoginStatus("Preencha email e senha.", "error");
+        return;
+      }
+
+      if (!await initSupabase()) return;
+
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+
+      if (error) {
+        showLoginStatus("Erro: " + error.message, "error");
+        return;
+      }
+
+      currentUser = data.user;
+      showLoginStatus("Bem-vindo!", "success");
+      setTimeout(showApp, 1000);
+    }
+
+    async function handleSignup() {
+      const email = $("loginEmail").value.trim();
+      const password = $("loginPassword").value.trim();
+
+      if (!email || !password) {
+        showLoginStatus("Preencha email e senha.", "error");
+        return;
+      }
+
+      if (!await initSupabase()) return;
+
+      const { data, error } = await supabase.auth.signUp({ email, password });
+
+      if (error) {
+        showLoginStatus("Erro: " + error.message, "error");
+        return;
+      }
+
+      showLoginStatus("Cadastro realizado! Verifique seu email.", "success");
+    }
+
+    function showLoginStatus(message, type) {
+      const el = $("loginStatus");
+      el.className = "login-status show " + type;
+      el.textContent = message;
+    }
+
+    function showApp() {
+      $("loginScreen").classList.add("hidden");
+      $("appScreen").style.display = "block";
+      $("userEmail").textContent = currentUser?.email || "Usuário";
+      setupNavigation();
+    }
+
+    function setupNavigation() {
+      const buttons = {
+        playgroundBtn: "playground.html",
+        chatBtn: "chat.html",
+        configBtn: "config.html"
+      };
+
+      Object.entries(buttons).forEach(([btnId, src]) => {
+        $(btnId).addEventListener("click", () => {
+          document.querySelectorAll(".nav-btn").forEach(b => b.classList.remove("active"));
+          $(btnId).classList.add("active");
+          $("contentFrame").src = src;
+        });
+      });
+
+      $("logoutBtn").addEventListener("click", async () => {
+        if (supabase) {
+          await supabase.auth.signOut();
+        }
+        currentUser = null;
+        $("loginScreen").classList.remove("hidden");
+        $("appScreen").style.display = "none";
+        $("loginEmail").value = "";
+        $("loginPassword").value = "";
+      });
+    }
+
+    $("loginBtn").addEventListener("click", handleLogin);
+    $("signupBtn").addEventListener("click", handleSignup);
+  </script>
+</body>
+
+</html>
