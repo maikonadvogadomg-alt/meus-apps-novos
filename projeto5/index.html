@@ -1,0 +1,696 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Mini VS Code</title>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="token-manager.js"></script>
+  <script src="brain-system.js"></script>
+  <script src="ai-provider.js"></script>
+
+  <style>
+    :root {
+      --bg: #1e1e1e;
+      --panel: #252526;
+      --panel-2: #2d2d30;
+      --editor: #1e1e1e;
+      --text: #d4d4d4;
+      --muted: #858585;
+      --border: #3e3e42;
+      --primary: #007acc;
+      --success: #4ec9b0;
+      --warning: #dcdcaa;
+      --danger: #f48771;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      overflow: hidden;
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Consolas', 'Monaco', monospace;
+    }
+
+    .app {
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+    }
+
+    .topbar {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 12px;
+      border-bottom: 1px solid var(--border);
+      background: var(--panel);
+      flex-wrap: wrap;
+      flex-shrink: 0;
+    }
+
+    .topbar h1 {
+      margin: 0;
+      font-size: 13px;
+      font-weight: 600;
+    }
+
+    .file-tabs {
+      display: flex;
+      gap: 0;
+      margin: 0 10px;
+      border-bottom: 1px solid var(--border);
+      overflow-x: auto;
+    }
+
+    .file-tab {
+      padding: 8px 12px;
+      border: 1px solid transparent;
+      border-bottom: 2px solid transparent;
+      background: transparent;
+      color: var(--muted);
+      cursor: pointer;
+      font-size: 12px;
+      white-space: nowrap;
+      transition: all 0.2s;
+    }
+
+    .file-tab:hover {
+      color: var(--text);
+      background: var(--panel-2);
+    }
+
+    .file-tab.active {
+      color: var(--text);
+      border-bottom-color: var(--primary);
+      background: var(--panel-2);
+    }
+
+    .toolbar {
+      display: flex;
+      gap: 6px;
+      margin-left: auto;
+    }
+
+    button {
+      padding: 6px 10px;
+      border: 1px solid var(--border);
+      border-radius: 3px;
+      background: transparent;
+      color: var(--text);
+      cursor: pointer;
+      font-size: 11px;
+      transition: all 0.2s;
+    }
+
+    button:hover {
+      background: var(--panel-2);
+      border-color: var(--primary);
+    }
+
+    button.primary {
+      background: var(--primary);
+      color: white;
+      border-color: var(--primary);
+    }
+
+    .main {
+      display: flex;
+      flex: 1;
+      min-height: 0;
+      overflow: hidden;
+    }
+
+    .sidebar {
+      width: 250px;
+      background: var(--panel);
+      border-right: 1px solid var(--border);
+      padding: 10px;
+      overflow-y: auto;
+      flex-shrink: 0;
+    }
+
+    .sidebar h3 {
+      margin: 0 0 10px;
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--muted);
+      text-transform: uppercase;
+    }
+
+    .file-tree {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      font-size: 12px;
+    }
+
+    .file-item {
+      padding: 4px 8px;
+      border-radius: 3px;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .file-item:hover {
+      background: var(--panel-2);
+    }
+
+    .file-item.active {
+      background: var(--primary);
+      color: white;
+    }
+
+    .file-icon {
+      font-size: 10px;
+    }
+
+    .editor-area {
+      display: flex;
+      flex: 1;
+      min-width: 0;
+      overflow: hidden;
+    }
+
+    .editor-panel {
+      display: flex;
+      flex-direction: column;
+      flex: 1;
+      min-width: 0;
+    }
+
+    .editor-wrap {
+      display: flex;
+      flex: 1;
+      min-height: 0;
+      overflow: hidden;
+      background: var(--editor);
+    }
+
+    .line-numbers {
+      width: 40px;
+      padding: 10px 6px;
+      border-right: 1px solid var(--border);
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.6;
+      text-align: right;
+      user-select: none;
+      overflow: hidden;
+      background: var(--panel);
+      flex-shrink: 0;
+    }
+
+    .code-editor {
+      flex: 1;
+      width: 100%;
+      padding: 10px;
+      border: 0;
+      outline: none;
+      resize: none;
+      color: var(--text);
+      background: var(--editor);
+      font-family: 'Consolas', 'Monaco', monospace;
+      font-size: 12px;
+      line-height: 1.6;
+      tab-size: 2;
+      overflow: auto;
+    }
+
+    .preview-panel {
+      display: flex;
+      flex-direction: column;
+      width: 50%;
+      border-left: 1px solid var(--border);
+      min-width: 0;
+    }
+
+    .preview-header {
+      padding: 8px 12px;
+      border-bottom: 1px solid var(--border);
+      background: var(--panel);
+      font-size: 12px;
+      font-weight: 600;
+      flex-shrink: 0;
+    }
+
+    .preview-frame {
+      flex: 1;
+      width: 100%;
+      border: 0;
+      background: white;
+    }
+
+    .status-bar {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      padding: 4px 12px;
+      border-top: 1px solid var(--border);
+      background: var(--panel);
+      font-size: 11px;
+      color: var(--muted);
+      flex-shrink: 0;
+    }
+
+    .status-item {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .ai-panel {
+      width: 300px;
+      background: var(--panel);
+      border-left: 1px solid var(--border);
+      padding: 10px;
+      overflow-y: auto;
+      flex-shrink: 0;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .ai-panel h3 {
+      margin: 0 0 10px;
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--muted);
+    }
+
+    .ai-input {
+      flex: 1;
+      padding: 8px;
+      border: 1px solid var(--border);
+      border-radius: 3px;
+      background: var(--editor);
+      color: var(--text);
+      font-size: 11px;
+      resize: none;
+      font-family: inherit;
+      outline: none;
+    }
+
+    .ai-input:focus {
+      border-color: var(--primary);
+    }
+
+    .ai-buttons {
+      display: flex;
+      gap: 6px;
+      margin-top: 8px;
+    }
+
+    .ai-buttons button {
+      flex: 1;
+      padding: 6px;
+      font-size: 10px;
+    }
+
+    .ai-response {
+      margin-top: 10px;
+      padding: 8px;
+      border: 1px solid var(--border);
+      border-radius: 3px;
+      background: var(--panel-2);
+      font-size: 11px;
+      max-height: 200px;
+      overflow-y: auto;
+      line-height: 1.4;
+    }
+
+    @media (max-width: 1024px) {
+      .preview-panel {
+        display: none;
+      }
+
+      .ai-panel {
+        display: none;
+      }
+
+      .editor-area {
+        width: 100%;
+      }
+    }
+
+    @media (max-width: 768px) {
+      .sidebar {
+        width: 150px;
+      }
+
+      .file-item {
+        font-size: 11px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="app">
+    <div class="topbar">
+      <h1>📝 Mini VS Code</h1>
+
+      <div class="file-tabs" id="fileTabs"></div>
+
+      <div class="toolbar">
+        <button id="newFileBtn">+ Arquivo</button>
+        <button id="saveBtn" class="primary">💾 Salvar</button>
+        <button id="runBtn" class="primary">▶ Executar</button>
+        <button id="exportBtn">📦 Exportar Modular</button>
+      </div>
+    </div>
+
+    <div class="main">
+      <div class="sidebar">
+        <h3>Arquivos</h3>
+        <div id="fileTree" class="file-tree"></div>
+      </div>
+
+      <div class="editor-area">
+        <div class="editor-panel">
+          <div class="editor-wrap">
+            <div id="lineNumbers" class="line-numbers">1</div>
+            <textarea id="codeEditor" class="code-editor" spellcheck="false"></textarea>
+          </div>
+        </div>
+
+        <div class="preview-panel">
+          <div class="preview-header">📱 Preview ao Vivo</div>
+          <iframe id="previewFrame" class="preview-frame" sandbox="allow-scripts allow-modals allow-forms"></iframe>
+        </div>
+
+        <div class="ai-panel">
+          <h3>🤖 IA Assistant</h3>
+
+          <select id="aiProvider" style="padding: 6px; border: 1px solid var(--border); border-radius: 3px; background: var(--editor); color: var(--text); font-size: 11px; margin-bottom: 8px;">
+            <option value="openai-gpt35">GPT-3.5</option>
+            <option value="openai-gpt4">GPT-4</option>
+            <option value="claude-haiku">Claude Haiku</option>
+            <option value="gemini-pro">Gemini Pro</option>
+            <option value="groq-mixtral">Groq (Rápido)</option>
+            <option value="ollama-mistral">Mistral (Local)</option>
+          </select>
+
+          <textarea id="aiInput" class="ai-input" placeholder="Peça para a IA ajudar..." rows="4"></textarea>
+
+          <div class="ai-buttons">
+            <button id="aiHelpBtn" class="primary">Ajuda</button>
+            <button id="aiFixBtn">Corrigir</button>
+            <button id="aiCompleteBtn">Completar</button>
+          </div>
+
+          <div id="aiResponse" class="ai-response" style="display: none;"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="status-bar">
+      <div class="status-item">
+        <span id="fileName">arquivo.js</span>
+      </div>
+      <div class="status-item">
+        <span id="lineCol">Ln 1, Col 1</span>
+      </div>
+      <div class="status-item" style="margin-left: auto;">
+        <span id="tokenStatus">Tokens: 0</span>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let supabase = null;
+    let currentUser = null;
+    let aiProvider = new AIProvider();
+    let tokenManager = new TokenManager();
+    let brainSystem = null;
+
+    const files = {
+      "index.html": {
+        name: "index.html",
+        type: "html",
+        content: `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Projeto</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <h1>Olá, Mundo!</h1>
+  <script src="script.js"><\/script>
+</body>
+</html>`
+      },
+      "style.css": {
+        name: "style.css",
+        type: "css",
+        content: `body {
+  font-family: Arial, sans-serif;
+  margin: 0;
+  padding: 20px;
+  background: #f0f0f0;
+}
+
+h1 {
+  color: #333;
+}`
+      },
+      "script.js": {
+        name: "script.js",
+        type: "js",
+        content: `console.log("Projeto carregado!");`
+      }
+    };
+
+    let currentFile = "index.html";
+
+    const $ = (id) => document.getElementById(id);
+
+    function renderFileTree() {
+      const tree = $("fileTree");
+      tree.innerHTML = "";
+
+      Object.entries(files).forEach(([name, file]) => {
+        const item = document.createElement("div");
+        item.className = "file-item" + (name === currentFile ? " active" : "");
+        item.innerHTML = `<span class="file-icon">${getFileIcon(file.type)}</span> ${name}`;
+        item.addEventListener("click", () => openFile(name));
+        tree.appendChild(item);
+      });
+    }
+
+    function renderFileTabs() {
+      const tabs = $("fileTabs");
+      tabs.innerHTML = "";
+
+      Object.keys(files).forEach(name => {
+        const tab = document.createElement("button");
+        tab.className = "file-tab" + (name === currentFile ? " active" : "");
+        tab.textContent = name;
+        tab.addEventListener("click", () => openFile(name));
+        tabs.appendChild(tab);
+      });
+    }
+
+    function getFileIcon(type) {
+      const icons = {
+        html: "🌐",
+        css: "🎨",
+        js: "⚙️",
+        json: "📋"
+      };
+      return icons[type] || "📄";
+    }
+
+    function openFile(name) {
+      currentFile = name;
+      const file = files[name];
+
+      $("codeEditor").value = file.content;
+      $("fileName").textContent = name;
+
+      updateLineNumbers();
+      renderFileTree();
+      renderFileTabs();
+      updatePreview();
+    }
+
+    function updateLineNumbers() {
+      const lines = $("codeEditor").value.split("\n").length;
+      $("lineNumbers").textContent = Array.from({ length: lines }, (_, i) => i + 1).join("\n");
+    }
+
+    function updatePreview() {
+      const htmlFile = files["index.html"];
+      const cssFile = files["style.css"];
+      const jsFile = files["script.js"];
+
+      const html = htmlFile.content
+        .replace('<link rel="stylesheet" href="style.css">', `<style>${cssFile.content}</style>`)
+        .replace('<script src="script.js"><\/script>', `<script>${jsFile.content}<\/script>`);
+
+      const blob = new Blob([html], { type: "text/html" });
+      const url = URL.createObjectURL(blob);
+      $("previewFrame").src = url;
+    }
+
+    function saveFile() {
+      const file = files[currentFile];
+      file.content = $("codeEditor").value;
+      updatePreview();
+      alert("Arquivo salvo!");
+    }
+
+    async function askAI(action) {
+      const code = $("codeEditor").value;
+      const prompt = $("aiInput").value;
+      const provider = $("aiProvider").value;
+
+      if (!aiProvider.getApiKey(provider) && provider !== "ollama-mistral") {
+        alert("Configure a chave API para " + provider);
+        return;
+      }
+
+      aiProvider.setProvider(provider);
+
+      let systemPrompt = "";
+      const file = files[currentFile];
+
+      switch (action) {
+        case "help":
+          systemPrompt = `Você é um assistente de programação. Ajude com o seguinte código ${file.type}:\n\n${code}\n\nPergunta: ${prompt}`;
+          break;
+        case "fix":
+          systemPrompt = `Corrija este código ${file.type} e explique o problema:\n\n${code}`;
+          break;
+        case "complete":
+          systemPrompt = `Complete este código ${file.type}:\n\n${code}\n\nContinue de onde parou.`;
+          break;
+      }
+
+      try {
+        $("aiResponse").style.display = "block";
+        $("aiResponse").textContent = "⏳ Aguardando resposta...";
+
+        const result = await aiProvider.call(
+          [{ role: "user", content: systemPrompt }],
+          ""
+        );
+
+        $("aiResponse").textContent = result.text;
+
+        tokenManager.addTokens(result.inputTokens, result.outputTokens);
+        $("tokenStatus").textContent = `Tokens: ${tokenManager.sessionTokensUsed}`;
+
+      } catch (error) {
+        $("aiResponse").textContent = "❌ Erro: " + error.message;
+      }
+    }
+
+    function exportModular() {
+      const project = {
+        name: prompt("Nome do projeto:") || "meu-projeto",
+        files: files,
+        exportedAt: new Date().toISOString()
+      };
+
+      // Gerar HTML modular
+      let html = `<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>${project.name}</title>
+  <style>
+${files["style.css"].content}
+  </style>
+</head>
+<body>
+${files["index.html"].content.replace(/<link[^>]*>/g, "").replace(/<script[^>]*><\/script>/g, "")}
+
+  <script>
+${files["script.js"].content}
+  </script>
+</body>
+
+</html>`;
+
+// Baixar
+const blob = new Blob([html], { type: "text/html" });
+const url = URL.createObjectURL(blob);
+const link = document.createElement("a");
+link.href = url;
+link.download = project.name + ".html";
+link.click();
+URL.revokeObjectURL(url);
+
+// Também salvar JSON
+const json = JSON.stringify(project, null, 2);
+const jsonBlob = new Blob([json], { type: "application/json" });
+const jsonUrl = URL.createObjectURL(jsonBlob);
+const jsonLink = document.createElement("a");
+jsonLink.href = jsonUrl;
+jsonLink.download = project.name + ".json";
+jsonLink.click();
+URL.revokeObjectURL(jsonUrl);
+
+alert("Projeto exportado como HTML modular e JSON!");
+}
+
+// Eventos
+$("codeEditor").addEventListener("input", (e) => {
+files[currentFile].content = e.target.value;
+updateLineNumbers();
+updatePreview();
+});
+
+$("codeEditor").addEventListener("keyup", () => {
+const textarea = $("codeEditor");
+const pos = textarea.selectionStart;
+const text = textarea.value.substring(0, pos);
+const line = text.split("\n").length;
+const col = text.split("\n").pop().length + 1;
+$("lineCol").textContent = `Ln ${line}, Col ${col}`;
+});
+
+$("saveBtn").addEventListener("click", saveFile);
+$("runBtn").addEventListener("click", updatePreview);
+$("exportBtn").addEventListener("click", exportModular);
+
+$("aiHelpBtn").addEventListener("click", () => askAI("help"));
+$("aiFixBtn").addEventListener("click", () => askAI("fix"));
+$("aiCompleteBtn").addEventListener("click", () => askAI("complete"));
+
+$("newFileBtn").addEventListener("click", () => {
+const name = prompt("Nome do arquivo:");
+if (name) {
+files[name] = {
+name,
+type: name.split(".").pop(),
+content: ""
+};
+renderFileTree();
+renderFileTabs();
+}
+});
+
+// Inicializar
+renderFileTree();
+renderFileTabs();
+openFile("index.html");
+
+</script>
+</body>
+
+</html>
