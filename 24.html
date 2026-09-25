@@ -1,0 +1,683 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Parser Markdown - Gerador de Projetos</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            background: #0f172a;
+            color: #e2e8f0;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        header {
+            background: #1e293b;
+            border: 2px solid #334155;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        header h1 {
+            color: #3b82f6;
+            font-size: 32px;
+            margin-bottom: 8px;
+        }
+
+        header p {
+            color: #94a3b8;
+            font-size: 14px;
+        }
+
+        .input-section {
+            background: #1e293b;
+            border: 2px solid #334155;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .input-section h2 {
+            color: #3b82f6;
+            margin-bottom: 16px;
+            font-size: 18px;
+        }
+
+        .input-options {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+
+        .btn {
+            padding: 12px 20px;
+            background: #3b82f6;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: bold;
+            transition: 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .btn:hover {
+            background: #1e40af;
+        }
+
+        .btn-secondary {
+            background: #334155;
+        }
+
+        .btn-secondary:hover {
+            background: #475569;
+        }
+
+        textarea {
+            width: 100%;
+            height: 200px;
+            background: #0f172a;
+            border: 2px solid #334155;
+            border-radius: 6px;
+            padding: 12px;
+            color: #e2e8f0;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            resize: vertical;
+        }
+
+        textarea:focus {
+            outline: none;
+            border-color: #3b82f6;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .tab-btn {
+            padding: 10px 16px;
+            background: #1e293b;
+            border: 2px solid #334155;
+            color: #e2e8f0;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: 0.3s;
+        }
+
+        .tab-btn:hover {
+            background: #334155;
+        }
+
+        .tab-btn.active {
+            background: #3b82f6;
+            border-color: #3b82f6;
+            color: white;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .main-grid {
+            display: grid;
+            grid-template-columns: 300px 1fr;
+            gap: 20px;
+        }
+
+        .sidebar {
+            background: #1e293b;
+            border: 2px solid #334155;
+            border-radius: 8px;
+            padding: 16px;
+        }
+
+        .sidebar h2 {
+            color: #3b82f6;
+            font-size: 16px;
+            margin-bottom: 12px;
+            padding-bottom: 8px;
+            border-bottom: 2px solid #334155;
+        }
+
+        .btn-group {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            margin-bottom: 16px;
+        }
+
+        .btn-small {
+            padding: 6px 10px;
+            font-size: 11px;
+        }
+
+        .file-list {
+            max-height: 500px;
+            overflow-y: auto;
+        }
+
+        .file-item {
+            padding: 10px;
+            margin-bottom: 6px;
+            background: #0f172a;
+            border: 1px solid #334155;
+            border-radius: 4px;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 13px;
+            transition: 0.2s;
+        }
+
+        .file-item:hover {
+            background: #3b82f6;
+            color: white;
+        }
+
+        .file-item.active {
+            background: #3b82f6;
+            color: white;
+            border-color: #3b82f6;
+        }
+
+        .content {
+            background: #1e293b;
+            border: 2px solid #334155;
+            border-radius: 8px;
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            height: 600px;
+        }
+
+        .content-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+            padding-bottom: 12px;
+            border-bottom: 2px solid #334155;
+        }
+
+        .content-header h3 {
+            color: #3b82f6;
+            font-size: 16px;
+        }
+
+        .editor-textarea {
+            flex: 1;
+            background: #0f172a;
+            border: 1px solid #334155;
+            border-radius: 4px;
+            padding: 12px;
+            color: #e2e8f0;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            resize: none;
+        }
+
+        .editor-textarea:focus {
+            outline: none;
+            border-color: #3b82f6;
+        }
+
+        .editor-actions {
+            display: flex;
+            gap: 8px;
+            margin-top: 12px;
+        }
+
+        .empty-state {
+            text-align: center;
+            color: #94a3b8;
+            padding: 60px 20px;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.8);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal.show {
+            display: flex;
+        }
+
+        .modal-content {
+            background: #1e293b;
+            border: 2px solid #334155;
+            border-radius: 8px;
+            padding: 24px;
+            max-width: 400px;
+            width: 90%;
+        }
+
+        .modal-content h3 {
+            color: #3b82f6;
+            margin-bottom: 16px;
+            font-size: 18px;
+        }
+
+        .form-group {
+            margin-bottom: 12px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 6px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            padding: 8px;
+            background: #0f172a;
+            border: 1px solid #334155;
+            border-radius: 4px;
+            color: #e2e8f0;
+            font-size: 12px;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: #3b82f6;
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 8px;
+            justify-content: flex-end;
+            margin-top: 16px;
+        }
+
+        .btn-cancel {
+            background: #ef4444;
+        }
+
+        .btn-cancel:hover {
+            background: #dc2626;
+        }
+
+        .btn-success {
+            background: #22c55e;
+        }
+
+        .btn-success:hover {
+            background: #16a34a;
+        }
+
+        .stats-box {
+            background: #0f172a;
+            border: 1px solid #334155;
+            border-radius: 4px;
+            padding: 12px;
+            margin-bottom: 12px;
+            font-size: 12px;
+        }
+
+        .stats-box strong {
+            color: #3b82f6;
+        }
+
+        .code-block {
+            background: #0a0e1a;
+            border: 1px solid #1e293b;
+            border-radius: 4px;
+            padding: 12px;
+            font-family: 'Courier New', monospace;
+            font-size: 11px;
+            overflow-x: auto;
+            color: #a1a1a1;
+            margin-bottom: 12px;
+            line-height: 1.4;
+        }
+
+        .alert {
+            background: rgba(34, 197, 94, 0.1);
+            border: 1px solid #22c55e;
+            border-radius: 4px;
+            padding: 12px;
+            margin-bottom: 12px;
+            font-size: 12px;
+            color: #22c55e;
+        }
+
+        .info-box {
+            background: #0f172a;
+            border: 1px solid #334155;
+            border-radius: 4px;
+            padding: 12px;
+            margin-bottom: 12px;
+            font-size: 12px;
+        }
+
+        @media (max-width: 768px) {
+            .main-grid {
+                grid-template-columns: 1fr;
+            }
+
+            header {
+                text-align: center;
+            }
+
+            .content {
+                height: auto;
+                min-height: 400px;
+            }
+
+            .tabs {
+                flex-direction: column;
+            }
+
+            .input-options {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🚀 Parser Markdown</h1>
+            <p>Importe um Markdown e gere um gerenciador interativo de projeto</p>
+        </header>
+
+        <div class="input-section">
+            <h2>📥 Importar Markdown</h2>
+            <div class="input-options">
+                <button class="btn" onclick="openFileSelector()">
+                    📂 Importar Arquivo .md
+                </button>
+                <button class="btn btn-secondary" onclick="showPasteModal()">
+                    📋 Colar Markdown
+                </button>
+                <button class="btn btn-secondary" onclick="loadExample()">
+                    📝 Carregar Exemplo
+                </button>
+            </div>
+        </div>
+
+        <div class="tabs">
+            <button class="tab-btn active" onclick="switchTab('editor')">📝 Editor</button>
+            <button class="tab-btn" onclick="switchTab('preview')">👁️ Visualizar</button>
+            <button class="tab-btn" onclick="switchTab('help')">❓ Ajuda</button>
+        </div>
+
+        <!-- TAB: EDITOR -->
+        <div id="tab-editor" class="tab-content active">
+            <div class="input-section">
+                <h2>Markdown</h2>
+                <textarea id="markdownInput" placeholder="Cole seu Markdown aqui..."></textarea>
+                <div style="display: flex; gap: 8px; margin-top: 12px;">
+                    <button class="btn" onclick="parseAndGenerate()">🔄 Gerar HTML</button>
+                    <button class="btn btn-secondary" onclick="clearEditor()">🗑️ Limpar</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB: PREVIEW -->
+        <div id="tab-preview" class="tab-content">
+            <div class="input-section">
+                <h2>Visualização do Projeto</h2>
+                <div id="previewContent" style="color: #94a3b8; text-align: center; padding: 40px;">
+                    <p>Carregue um Markdown para visualizar</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB: AJUDA -->
+        <div id="tab-help" class="tab-content">
+            <div class="input-section">
+                <h2>📖 Como Usar</h2>
+                <div class="info-box">
+                    <strong>1. Formato do Markdown:</strong>
+                    <pre class="code-block"># Nome do Projeto
+
+ID: com.app.meu_projeto
+API Min: 21
+API Max: 33
+Orientação: portrait
+
+## Descrição
+
+Descrição do projeto aqui
+
+## Pastas
+
+- src
+- public
+- assets
+
+## Arquivos
+
+- **index.html**
+&lt;!DOCTYPE html&gt;
+&lt;html&gt;...
+
+- **style.css**
+body { ... }</pre>
+                </div>
+
+                <div class="info-box">
+                    <strong>2. Campos Reconhecidos:</strong>
+                    <ul style="margin-left: 20px; line-height: 1.8;">
+                        <li>📋 Nome: Primeira linha com #</li>
+                        <li>🔗 ID: Campo "ID:"</li>
+                        <li>📱 API Min: Campo "API Min:"</li>
+                        <li>📱 API Max: Campo "API Max:"</li>
+                        <li>🔄 Orientação: Campo "Orientação:"</li>
+                        <li>📝 Descrição: Seção "## Descrição"</li>
+                        <li>📁 Pastas: Seção "## Pastas"</li>
+                        <li>📄 Arquivos: Seção "## Arquivos"</li>
+                    </ul>
+                </div>
+
+                <div class="info-box">
+                    <strong>3. Resultado:</strong>
+                    <p>Um HTML interativo onde você pode:</p>
+                    <ul style="margin-left: 20px; line-height: 1.8;">
+                        <li>✅ Editar arquivos</li>
+                        <li>✅ Criar pastas e arquivos</li>
+                        <li>✅ Copiar conteúdo</li>
+                        <li>✅ Ver estatísticas</li>
+                        <li>✅ Gerar scripts para PC</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: COLAR MARKDOWN -->
+    <div id="pasteModal" class="modal">
+        <div class="modal-content">
+            <h3>📋 Colar Markdown</h3>
+            <div class="form-group">
+                <label>Cole o conteúdo do Markdown:</label>
+                <textarea id="pasteInput" style="height: 200px; width: 100%; padding: 8px; background: #0f172a; border: 1px solid #334155; border-radius: 4px; color: #e2e8f0; font-family: 'Courier New', monospace; font-size: 12px;" placeholder="Cole aqui..."></textarea>
+            </div>
+            <div class="modal-actions">
+                <button class="btn btn-cancel btn-small" onclick="closeModal('pasteModal')">Cancelar</button>
+                <button class="btn btn-success btn-small" onclick="processPaste()">Processar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: NOVA PASTA -->
+    <div id="folderModal" class="modal">
+        <div class="modal-content">
+            <h3>📁 Nova Pasta</h3>
+            <div class="form-group">
+                <label>Nome:</label>
+                <input type="text" id="folderInput" placeholder="Ex: src, assets">
+            </div>
+            <div class="modal-actions">
+                <button class="btn btn-cancel btn-small" onclick="closeModal('folderModal')">Cancelar</button>
+                <button class="btn btn-success btn-small" onclick="createFolder()">Criar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: NOVO ARQUIVO -->
+    <div id="fileModal" class="modal">
+        <div class="modal-content">
+            <h3>📄 Novo Arquivo</h3>
+            <div class="form-group">
+                <label>Nome:</label>
+                <input type="text" id="fileInput" placeholder="Ex: index.html">
+            </div>
+            <div class="form-group">
+                <label>Tipo:</label>
+                <select id="typeSelect">
+                    <option>html</option>
+                    <option>css</option>
+                    <option>js</option>
+                    <option>json</option>
+                    <option>txt</option>
+                </select>
+            </div>
+            <div class="modal-actions">
+                <button class="btn btn-cancel btn-small" onclick="closeModal('fileModal')">Cancelar</button>
+                <button class="btn btn-success btn-small" onclick="createFile()">Criar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: ESTATÍSTICAS -->
+    <div id="statsModal" class="modal">
+        <div class="modal-content">
+            <h3>📊 Estatísticas</h3>
+            <div id="statsContent"></div>
+            <div class="modal-actions">
+                <button class="btn btn-small" onclick="closeModal('statsModal')">Fechar</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ═══════════════════════════════════════════════════════════════════════════
+        // PARSER MARKDOWN
+        // ═══════════════════════════════════════════════════════════════════════════
+
+        function parseMarkdown(mdContent) {
+            const project = {
+                name: 'Projeto',
+                id: 'com.app.projeto',
+                apiMin: 21,
+                apiMax: 33,
+                orientation: 'portrait',
+                description: '',
+                files: {},
+                folders: []
+            };
+
+            // Extrair nome
+            const nameMatch = mdContent.match(/^#\s+(.+?)$/m);
+            if (nameMatch) project.name = nameMatch[1].trim();
+
+            // Extrair ID
+            const idMatch = mdContent.match(/ID[:\s]+([^\n]+)/i);
+            if (idMatch) project.id = idMatch[1].trim();
+
+            // Extrair API Min
+            const apiMinMatch = mdContent.match(/API.*?Min[:\s]+(\d+)/i);
+            if (apiMinMatch) project.apiMin = parseInt(apiMinMatch[1]);
+
+            // Extrair API Max
+            const apiMaxMatch = mdContent.match(/API.*?Max[:\s]+(\d+)/i);
+            if (apiMaxMatch) project.apiMax = parseInt(apiMaxMatch[1]);
+
+            // Extrair Orientação
+            const orientMatch = mdContent.match(/Orientação[:\s]+([^\n]+)/i);
+            if (orientMatch) project.orientation = orientMatch[1].trim().toLowerCase();
+
+            // Extrair Descrição
+            const descMatch = mdContent.match(/## Descrição\n\n([\s\S]*?)(?=##|$)/i);
+            if (descMatch) project.description = descMatch[1].trim();
+
+            // Extrair Pastas
+            const foldersMatch = mdContent.match(/## Pastas?\n\n([\s\S]*?)(?=##|$)/i);
+            if (foldersMatch) {
+                const folderLines = foldersMatch[1].trim().split('\n');
+                folderLines.forEach(line => {
+                    const folder = line.replace(/^[-*]\s+/, '').trim();
+                    if (folder) project.folders.push(folder);
+                });
+            }
+
+            // Extrair Arquivos
+            const filesMatch = mdContent.match(/## Arquivos?\n\n([\s\S]*?)(?=##|$)/i);
+            if (filesMatch) {
+                const fileLines = filesMatch[1].trim().split('\n');
+                let currentFile = null;
+                let currentContent = '';
+
+                fileLines.forEach((line) => {
+                    if (line.match(/^[-*]\s+\*\*(.+?)\*\*/)) {
+                        if (currentFile) {
+                            project.files[currentFile] = currentContent.trim();
+                        }
+                        const nameMatch = line.match(/\*\*(.+?)\*\*/);
+                        currentFile = nameMatch ? nameMatch[1] : null;
+                        currentContent = '';
+                    } else if (currentFile && line.trim()) {
+                        currentContent += line + '\n';
+                    }
+                });
+
+                if (currentFile) {
+                    project.files[currentFile] = currentContent.trim();
+                }
+            }
+
+            // Arquivos padrão
+            if (Object.keys(project.files).length === 0) {
+                project.files = {
+                    'index.html': `<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <title>${project.name}</title>
+</head>
+<body>
+    <h1>Bem-vindo ao ${project.name}</h1>
+</body>
+</html>
