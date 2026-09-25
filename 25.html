@@ -1,0 +1,657 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>${project.name} - Gerenciador</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            background: #0f172a;
+            color: #e2e8f0;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        header {
+            background: #1e293b;
+            border: 2px solid #334155;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        header h1 {
+            color: #3b82f6;
+            font-size: 28px;
+        }
+
+        header .info {
+            font-size: 12px;
+            color: #94a3b8;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .tab-btn {
+            padding: 10px 16px;
+            background: #1e293b;
+            border: 2px solid #334155;
+            color: #e2e8f0;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: 0.3s;
+        }
+
+        .tab-btn:hover {
+            background: #334155;
+        }
+
+        .tab-btn.active {
+            background: #3b82f6;
+            border-color: #3b82f6;
+            color: white;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .main-grid {
+            display: grid;
+            grid-template-columns: 300px 1fr;
+            gap: 20px;
+        }
+
+        .sidebar {
+            background: #1e293b;
+            border: 2px solid #334155;
+            border-radius: 8px;
+            padding: 16px;
+        }
+
+        .sidebar h2 {
+            color: #3b82f6;
+            font-size: 16px;
+            margin-bottom: 12px;
+            padding-bottom: 8px;
+            border-bottom: 2px solid #334155;
+        }
+
+        .btn-group {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            margin-bottom: 16px;
+        }
+
+        .btn {
+            padding: 10px;
+            background: #3b82f6;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: bold;
+            transition: 0.3s;
+        }
+
+        .btn:hover {
+            background: #1e40af;
+        }
+
+        .btn-small {
+            padding: 6px 10px;
+            font-size: 11px;
+        }
+
+        .file-list {
+            max-height: 500px;
+            overflow-y: auto;
+        }
+
+        .file-item {
+            padding: 10px;
+            margin-bottom: 6px;
+            background: #0f172a;
+            border: 1px solid #334155;
+            border-radius: 4px;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 13px;
+            transition: 0.2s;
+        }
+
+        .file-item:hover {
+            background: #3b82f6;
+            color: white;
+        }
+
+        .file-item.active {
+            background: #3b82f6;
+            color: white;
+            border-color: #3b82f6;
+        }
+
+        .content {
+            background: #1e293b;
+            border: 2px solid #334155;
+            border-radius: 8px;
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            height: 600px;
+        }
+
+        .content-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+            padding-bottom: 12px;
+            border-bottom: 2px solid #334155;
+        }
+
+        .content-header h3 {
+            color: #3b82f6;
+            font-size: 16px;
+        }
+
+        textarea {
+            flex: 1;
+            background: #0f172a;
+            border: 1px solid #334155;
+            border-radius: 4px;
+            padding: 12px;
+            color: #e2e8f0;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            resize: none;
+        }
+
+        textarea:focus {
+            outline: none;
+            border-color: #3b82f6;
+        }
+
+        .editor-actions {
+            display: flex;
+            gap: 8px;
+            margin-top: 12px;
+        }
+
+        .empty-state {
+            text-align: center;
+            color: #94a3b8;
+            padding: 60px 20px;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal.show {
+            display: flex;
+        }
+
+        .modal-content {
+            background: #1e293b;
+            border: 2px solid #334155;
+            border-radius: 8px;
+            padding: 24px;
+            max-width: 400px;
+            width: 90%;
+        }
+
+        .modal-content h3 {
+            color: #3b82f6;
+            margin-bottom: 16px;
+            font-size: 18px;
+        }
+
+        .form-group {
+            margin-bottom: 12px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 6px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            padding: 8px;
+            background: #0f172a;
+            border: 1px solid #334155;
+            border-radius: 4px;
+            color: #e2e8f0;
+            font-size: 12px;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: #3b82f6;
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 8px;
+            justify-content: flex-end;
+            margin-top: 16px;
+        }
+
+        .btn-cancel {
+            background: #ef4444;
+        }
+
+        .btn-cancel:hover {
+            background: #dc2626;
+        }
+
+        .btn-success {
+            background: #22c55e;
+        }
+
+        .btn-success:hover {
+            background: #16a34a;
+        }
+
+        .stats-box {
+            background: #0f172a;
+            border: 1px solid #334155;
+            border-radius: 4px;
+            padding: 12px;
+            margin-bottom: 12px;
+            font-size: 12px;
+        }
+
+        .stats-box strong {
+            color: #3b82f6;
+        }
+
+        .alert {
+            background: rgba(34, 197, 94, 0.1);
+            border: 1px solid #22c55e;
+            border-radius: 4px;
+            padding: 12px;
+            margin-bottom: 12px;
+            font-size: 12px;
+            color: #22c55e;
+        }
+
+        @media (max-width: 768px) {
+            .main-grid {
+                grid-template-columns: 1fr;
+            }
+
+            header {
+                flex-direction: column;
+                gap: 12px;
+                text-align: center;
+            }
+
+            .content {
+                height: auto;
+                min-height: 400px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <header>
+            <div>
+                <h1>🚀 ${project.name}</h1>
+                <div class="info">ID: ${project.id}</div>
+            </div>
+            <div class="info">
+                <div>API: ${project.apiMin} - ${project.apiMax}</div>
+                <div>Orientação: ${project.orientation}</div>
+            </div>
+        </header>
+
+        <div class="tabs">
+            <button class="tab-btn active" onclick="switchTab('arquivos')">📁 Arquivos</button>
+            <button class="tab-btn" onclick="switchTab('info')">ℹ️ Informações</button>
+            <button class="tab-btn" onclick="switchTab('scripts')">🪟 Scripts</button>
+        </div>
+
+        <!-- TAB: ARQUIVOS -->
+        <div id="tab-arquivos" class="tab-content active">
+            <div class="main-grid">
+                <aside class="sidebar">
+                    <h2>📁 Arquivos</h2>
+
+                    <div class="btn-group">
+                        <button class="btn btn-small" onclick="newFolder()">📁 Pasta</button>
+                        <button class="btn btn-small" onclick="newFile()">📄 Arquivo</button>
+                    </div>
+
+                    <div class="btn-group">
+                        <button class="btn btn-small" onclick="showStats()">📊 Stats</button>
+                        <button class="btn btn-small" onclick="copyAll()">📋 Copiar</button>
+                    </div>
+
+                    <div class="file-list" id="fileList"></div>
+                </aside>
+
+                <main class="content">
+                    <div class="content-header">
+                        <h3 id="fileName">Selecione um arquivo</h3>
+                    </div>
+                    <div id="editorContainer"></div>
+                </main>
+            </div>
+        </div>
+
+        <!-- TAB: INFORMAÇÕES -->
+        <div id="tab-info" class="tab-content">
+            <div style="background: #1e293b; border: 2px solid #334155; border-radius: 8px; padding: 20px;">
+                <h2 style="color: #3b82f6; margin-bottom: 20px;">ℹ️ Informações do Projeto</h2>
+
+                <div class="stats-box"><strong>📋 Nome:</strong> ${project.name}</div>
+                <div class="stats-box"><strong>🔗 ID:</strong> ${project.id}</div>
+                <div class="stats-box"><strong>📱 API Min:</strong> ${project.apiMin}</div>
+                <div class="stats-box"><strong>📱 API Max:</strong> ${project.apiMax}</div>
+                <div class="stats-box"><strong>🔄 Orientação:</strong> ${project.orientation}</div>
+                <div class="stats-box"><strong>📝 Descrição:</strong> ${project.description || 'Sem descrição'}</div>
+
+                ${project.folders.length > 0 ? '<h3 style="color: #3b82f6; margin-top: 20px; margin-bottom: 12px;">📁
+                    Pastas</h3>
+                <div
+                    style="background: #0f172a; border: 1px solid #334155; border-radius: 4px; padding: 12px; font-size: 12px;">
+                    ' + project.folders.join('<br>') + '</div>' : ''}
+            </div>
+        </div>
+
+        <!-- TAB: SCRIPTS -->
+        <div id="tab-scripts" class="tab-content">
+            <div style="background: #1e293b; border: 2px solid #334155; border-radius: 8px; padding: 20px;">
+                <h2 style="color: #3b82f6; margin-bottom: 20px;">🪟 Scripts para PC</h2>
+
+                <div class="alert">✅ Copie o script abaixo, cole em um arquivo e execute no seu PC</div>
+
+                <h3 style="color: #3b82f6; margin-bottom: 12px;">🪟 Windows (Batch)</h3>
+                <div style="background: #0a0e1a; border: 1px solid #1e293b; border-radius: 4px; padding: 12px; font-family: 'Courier New', monospace; font-size: 11px; overflow-x: auto; color: #a1a1a1; margin-bottom: 12px; cursor: pointer;"
+                    id="batchScript" onclick="copyScript('batchScript')">Clique para copiar...</div>
+
+                <h3 style="color: #3b82f6; margin-bottom: 12px;">💻 PowerShell</h3>
+                <div style="background: #0a0e1a; border: 1px solid #1e293b; border-radius: 4px; padding: 12px; font-family: 'Courier New', monospace; font-size: 11px; overflow-x: auto; color: #a1a1a1; margin-bottom: 12px; cursor: pointer;"
+                    id="powershellScript" onclick="copyScript('powershellScript')">Clique para copiar...</div>
+
+                <h3 style="color: #3b82f6; margin-bottom: 12px;">🐧 Bash (Mac/Linux)</h3>
+                <div style="background: #0a0e1a; border: 1px solid #1e293b; border-radius: 4px; padding: 12px; font-family: 'Courier New', monospace; font-size: 11px; overflow-x: auto; color: #a1a1a1; margin-bottom: 12px; cursor: pointer;"
+                    id="bashScript" onclick="copyScript('bashScript')">Clique para copiar...</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAIS -->
+    <div id="folderModal" class="modal">
+        <div class="modal-content">
+            <h3>📁 Nova Pasta</h3>
+            <div class="form-group">
+                <label>Nome:</label>
+                <input type="text" id="folderInput" placeholder="Ex: src, assets">
+            </div>
+            <div class="modal-actions">
+                <button class="btn btn-cancel btn-small" onclick="closeModal('folderModal')">Cancelar</button>
+                <button class="btn btn-success btn-small" onclick="createFolder()">Criar</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="fileModal" class="modal">
+        <div class="modal-content">
+            <h3>📄 Novo Arquivo</h3>
+            <div class="form-group">
+                <label>Nome:</label>
+                <input type="text" id="fileInput" placeholder="Ex: index.html">
+            </div>
+            <div class="form-group">
+                <label>Tipo:</label>
+                <select id="typeSelect">
+                    <option>html</option>
+                    <option>css</option>
+                    <option>js</option>
+                    <option>json</option>
+                    <option>txt</option>
+                </select>
+            </div>
+            <div class="modal-actions">
+                <button class="btn btn-cancel btn-small" onclick="closeModal('fileModal')">Cancelar</button>
+                <button class="btn btn-success btn-small" onclick="createFile()">Criar</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="statsModal" class="modal">
+        <div class="modal-content">
+            <h3>📊 Estatísticas</h3>
+            <div id="statsContent"></div>
+            <div class="modal-actions">
+                <button class="btn btn-small" onclick="closeModal('statsModal')">Fechar</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const projectData = ${JSON.stringify(project)};
+        let files = projectData.files;
+        let currentFile = null;
+
+        function switchTab(tabName) {
+            const tabs = document.querySelectorAll('.tab-content');
+            tabs.forEach(tab => tab.classList.remove('active'));
+            document.getElementById('tab-' + tabName).classList.add('active');
+
+            const buttons = document.querySelectorAll('.tab-btn');
+            buttons.forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+
+            if (tabName === 'scripts') {
+                generateScripts();
+            }
+        }
+
+        function renderFiles() {
+            const list = document.getElementById('fileList');
+            list.innerHTML = '';
+
+            Object.keys(files).forEach(name => {
+                const item = document.createElement('div');
+                item.className = 'file-item' + (currentFile === name ? ' active' : '');
+                item.innerHTML = \`
+                    <span onclick="selectFile('\${name}')" style="flex: 1; cursor: pointer;">📄 \${name}</span>
+                    <button class="btn-small" onclick="deleteFile('\${name}')">🗑️</button>
+                \`;
+                list.appendChild(item);
+            });
+        }
+
+        function selectFile(name) {
+            currentFile = name;
+            renderFiles();
+            renderEditor();
+        }
+
+        function renderEditor() {
+            const container = document.getElementById('editorContainer');
+            const header = document.getElementById('fileName');
+
+            if (!currentFile) {
+                container.innerHTML = '<div class="empty-state"><p>Selecione um arquivo</p></div>';
+                header.textContent = 'Nenhum arquivo';
+                return;
+            }
+
+            header.textContent = currentFile;
+
+            container.innerHTML = \`
+                <textarea id="editor" class="editor-textarea">\${files[currentFile]}</textarea>
+                <div class="editor-actions">
+                    <button class="btn btn-small" onclick="saveFile()">💾 Salvar</button>
+                    <button class="btn btn-small" onclick="deleteFile('\${currentFile}')">🗑️ Deletar</button>
+                </div>
+            \`;
+        }
+
+        function saveFile() {
+            if (!currentFile) return;
+            const editor = document.getElementById('editor');
+            files[currentFile] = editor.value;
+            alert('✅ Arquivo salvo!');
+        }
+
+        function deleteFile(name) {
+            if (!confirm('Deletar ' + name + '?')) return;
+            delete files[name];
+            if (currentFile === name) currentFile = null;
+            renderFiles();
+            renderEditor();
+        }
+
+        function newFolder() {
+            document.getElementById('folderModal').classList.add('show');
+        }
+
+        function newFile() {
+            document.getElementById('fileModal').classList.add('show');
+        }
+
+        function createFolder() {
+            const name = document.getElementById('folderInput').value.trim();
+            if (!name) return alert('Digite um nome');
+            document.getElementById('folderInput').value = '';
+            closeModal('folderModal');
+            alert('✅ Pasta criada: ' + name);
+        }
+
+        function createFile() {
+            const name = document.getElementById('fileInput').value.trim();
+            const type = document.getElementById('typeSelect').value;
+            if (!name) return alert('Digite um nome');
+            
+            const filename = name.includes('.') ? name : name + '.' + type;
+            files[filename] = '';
+            
+            document.getElementById('fileInput').value = '';
+            closeModal('fileModal');
+            renderFiles();
+            alert('✅ Arquivo criado: ' + filename);
+        }
+
+        function closeModal(id) {
+            document.getElementById(id).classList.remove('show');
+        }
+
+        function showStats() {
+            const stats = \`
+                <div class="stats-box"><strong>📁 Arquivos:</strong> \${Object.keys(files).length}</div>
+                <div class="stats-box"><strong>📊 Tamanho:</strong> \${Math.round(JSON.stringify(files).length / 1024)} KB</div>
+                <div class="stats-box"><strong>🔗 ID:</strong> ${project.id}</div>
+                <div class="stats-box"><strong>📱 API:</strong> ${project.apiMin} - ${project.apiMax}</div>
+            \`;
+            document.getElementById('statsContent').innerHTML = stats;
+            document.getElementById('statsModal').classList.add('show');
+        }
+
+        function copyAll() {
+            const text = JSON.stringify(files, null, 2);
+            navigator.clipboard.writeText(text).then(() => {
+                alert('✅ Todos os arquivos copiados!');
+            }).catch(() => {
+                alert('❌ Erro ao copiar');
+            });
+        }
+
+        function generateScripts() {
+            const projectName = '${project.name}';
+            const safeName = '${safeName}';
+
+            const batch = \`@echo off
+echo 🚀 Criando projeto: \${projectName}
+mkdir \${safeName}
+cd \${safeName}
+mkdir src public assets
+echo ✅ Projeto criado
+pause\`;
+
+            const powershell = \`Write-Host "🚀 Criando projeto: \${projectName}" -ForegroundColor Green
+New-Item -ItemType Directory -Path "\${safeName}" | Out-Null
+Write-Host "✅ Projeto criado!" -ForegroundColor Green\`;
+
+            const bash = \`#!/bin/bash
+echo "🚀 Criando projeto: \${projectName}"
+mkdir -p ~/${safeName}
+echo "✅ Projeto criado em ~/\${safeName}"\`;
+
+            document.getElementById('batchScript').textContent = batch;
+            document.getElementById('powershellScript').textContent = powershell;
+            document.getElementById('bashScript').textContent = bash;
+        }
+
+        function copyScript(elementId) {
+            const element = document.getElementById(elementId);
+            const text = element.textContent;
+
+            navigator.clipboard.writeText(text).then(() => {
+                alert('✅ Script copiado!');
+            }).catch(() => {
+                alert('❌ Erro ao copiar');
+            });
+        }
+
+        window.onclick = (e) => {
+            if (e.target.classList.contains('modal')) {
+                e.target.classList.remove('show');
+            }
+        };
+
+        renderFiles();
+        renderEditor();
+    </script>
+</body>
+
+</html>
